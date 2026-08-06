@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Membangun Mindset Sehat - Web Slideshow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #f5e6d3 0%, #e8c4a0 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .slideshow-container {
+            max-width: 1000px;
+            width: 100%;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(61, 61, 61, 0.15);
+            overflow: hidden;
+        }
+
+        .slide {
+            display: none;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            position: relative;
+        }
+
+        .slide.active {
+            display: flex;
+        }
+
+        .slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 32px;
+            background: #f5e6d3;
+            gap: 16px;
+        }
+
+        .controls button {
+            background: #d4956e;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .controls button:hover {
+            background: #c07e56;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(212, 149, 110, 0.3);
+        }
+
+        .controls button:active {
+            transform: translateY(0);
+        }
+
+        .slide-counter {
+            font-size: 16px;
+            color: #3d3d3d;
+            font-weight: 500;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e0d5c7;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #d4956e;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .keyboard-hint {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(61, 61, 61, 0.9);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-family: 'Poppins', sans-serif;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .keyboard-hint:hover {
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .controls button {
+                width: 100%;
+            }
+
+            .slide-counter {
+                order: -1;
+            }
+
+            .keyboard-hint {
+                display: none;
+            }
+        }
+
+        /* Animation */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide.active {
+            animation: fadeIn 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="slideshow-container">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="slide-wrapper" id="slideWrapper">
+            <!-- Slides will be inserted here -->
+        </div>
+
+        <div class="controls">
+            <button onclick="prevSlide()" id="prevBtn">← Sebelumnya</button>
+            <div class="slide-counter">
+                <span id="currentSlide">1</span> / <span id="totalSlides">10</span>
+            </div>
+            <button onclick="nextSlide()" id="nextBtn">Selanjutnya →</button>
+        </div>
+    </div>
+
+    <div class="keyboard-hint">
+        <strong>Keyboard:</strong> ← → arrow keys | Space | Esc fullscreen
+    </div>
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 10;
+        const slideImages = [];
+
+        // Initialize slides
+        function initSlides() {
+            const wrapper = document.getElementById('slideWrapper');
+            
+            for (let i = 1; i <= totalSlides; i++) {
+                const slideNum = String(i).padStart(2, '0');
+                const slide = document.createElement('div');
+                slide.className = 'slide';
+                if (i === 1) slide.classList.add('active');
+                
+                const img = document.createElement('img');
+                img.src = `slide-${slideNum}.jpg`;
+                img.alt = `Slide ${i}`;
+                
+                slide.appendChild(img);
+                wrapper.appendChild(slide);
+            }
+            
+            updateCounter();
+            updateProgress();
+        }
+
+        function showSlide(n) {
+            const slides = document.querySelectorAll('.slide');
+            
+            if (n > totalSlides) {
+                currentSlide = totalSlides;
+            }
+            if (n < 1) {
+                currentSlide = 1;
+            }
+            
+            slides.forEach(slide => slide.classList.remove('active'));
+            slides[currentSlide - 1].classList.add('active');
+            
+            updateCounter();
+            updateProgress();
+        }
+
+        function nextSlide() {
+            currentSlide++;
+            showSlide(currentSlide);
+        }
+
+        function prevSlide() {
+            currentSlide--;
+            showSlide(currentSlide);
+        }
+
+        function updateCounter() {
+            document.getElementById('currentSlide').textContent = currentSlide;
+        }
+
+        function updateProgress() {
+            const progress = (currentSlide / totalSlides) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+            }
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                prevSlide();
+            }
+            if (e.key === 'Escape') {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                } else {
+                    document.documentElement.requestFullscreen().catch(err => {});
+                }
+            }
+        });
+
+        // Double click for fullscreen
+        document.querySelector('.slide-wrapper').addEventListener('dblclick', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {});
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        // Initialize on load
+        window.addEventListener('load', initSlides);
+    </script>
+</body>
+</html>
