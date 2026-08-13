@@ -2,274 +2,371 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Membangun Mindset Sehat - Web Slideshow</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Membangun Mindset Sehat</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none; /* Prevent text selection while swiping */
         }
 
-        body {
-            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #f5e6d3 0%, #e8c4a0 100%);
-            min-height: 100vh;
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* Prevent scrolling */
+            background: #000; /* Black background looks best on TV */
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        /* ── SLIDE AREA ── */
+        #slideWrapper {
+            position: fixed;
+            inset: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
-        }
-
-        .slideshow-container {
-            max-width: 1000px;
-            width: 100%;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(61, 61, 61, 0.15);
-            overflow: hidden;
+            background: #000;
         }
 
         .slide {
             display: none;
             width: 100%;
-            aspect-ratio: 16 / 9;
-            position: relative;
+            height: 100%;
+            position: absolute;
+            inset: 0;
         }
 
         .slide.active {
             display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeSlide 0.35s ease;
         }
 
         .slide img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+            /* This ensures the image fills the screen as much as possible without cropping, perfect for TVs */
+            max-width: 100%;
+            max-height: 100%;
+            width: 100vw;
+            height: 100vh;
+            object-fit: contain;
+            display: block;
         }
 
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 24px 32px;
-            background: #f5e6d3;
-            gap: 16px;
+        @keyframes fadeSlide {
+            from { opacity: 0; }
+            to   { opacity: 1; }
         }
 
-        .controls button {
-            background: #d4956e;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-family: 'Poppins', sans-serif;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .controls button:hover {
-            background: #c07e56;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(212, 149, 110, 0.3);
-        }
-
-        .controls button:active {
-            transform: translateY(0);
-        }
-
-        .slide-counter {
-            font-size: 16px;
-            color: #3d3d3d;
-            font-weight: 500;
-            min-width: 80px;
-            text-align: center;
-        }
-
-        .progress-bar {
+        /* ── PROGRESS BAR ── */
+        #progressBar {
+            position: fixed;
+            top: 0; left: 0;
             width: 100%;
             height: 4px;
-            background: #e0d5c7;
+            background: rgba(255,255,255,0.1);
+            z-index: 100;
         }
 
-        .progress-fill {
+        #progressFill {
             height: 100%;
             background: #d4956e;
             width: 0%;
             transition: width 0.3s ease;
         }
 
-        .keyboard-hint {
+        /* ── OVERLAY CONTROLS (Invisible Touch Zones) ── */
+        /* We divide the screen: left 30% goes back, right 30% goes forward */
+        .touch-zone {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(61, 61, 61, 0.9);
+            top: 0; bottom: 0;
+            width: 30%;
+            z-index: 50;
+            cursor: pointer;
+        }
+        #touchPrev { left: 0; }
+        #touchNext { right: 0; }
+
+        /* ── HUD (Visible controls) ── */
+        #hud {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            padding: 15px 20px calc(15px + env(safe-area-inset-bottom));
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%);
+            z-index: 100;
+            transition: opacity 0.5s ease;
+        }
+
+        #hud.hidden { 
+            opacity: 0; 
+            pointer-events: none; 
+        }
+
+        .nav-btn {
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.3);
             color: white;
-            padding: 12px 16px;
             border-radius: 8px;
-            font-size: 12px;
-            font-family: 'Poppins', sans-serif;
-            opacity: 0.7;
-            transition: opacity 0.3s ease;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.2s;
         }
 
-        .keyboard-hint:hover {
-            opacity: 1;
+        .nav-btn:active {
+            background: rgba(212, 149, 110, 0.8);
         }
 
-        @media (max-width: 768px) {
-            .controls {
-                flex-direction: column;
-                gap: 12px;
-            }
-
-            .controls button {
-                width: 100%;
-            }
-
-            .slide-counter {
-                order: -1;
-            }
-
-            .keyboard-hint {
-                display: none;
-            }
+        #counter {
+            color: rgba(255,255,255,0.9);
+            font-size: 14px;
+            font-weight: 600;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.8);
         }
 
-        /* Animation */
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        /* ── FULLSCREEN BTN ── */
+        #fullscreenBtn {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 100;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            transition: opacity 0.5s ease;
+        }
+        
+        #fullscreenBtn.hidden {
+            opacity: 0;
+            pointer-events: none;
         }
 
-        .slide.active {
-            animation: fadeIn 0.5s ease;
+        #fullscreenBtn svg {
+            width: 20px;
+            height: 20px;
+            fill: white;
+        }
+
+        /* ── LANDSCAPE PORTRAIT HINT ── */
+        #rotateHint {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: #111;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        #rotateHint svg {
+            width: 80px;
+            height: 80px;
+            animation: rotatePhone 2s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+
+        #rotateHint h2 {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #d4956e;
+        }
+
+        #rotateHint p {
+            font-size: 14px;
+            opacity: 0.8;
+            line-height: 1.5;
+        }
+
+        @keyframes rotatePhone {
+            0%   { transform: rotate(0deg); }
+            30%  { transform: rotate(90deg); }
+            70%  { transform: rotate(90deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        /* Show hint only on mobile devices in portrait mode */
+        @media (max-width: 800px) and (orientation: portrait) {
+            #rotateHint { display: flex; }
         }
     </style>
 </head>
 <body>
-    <div class="slideshow-container">
-        <div class="progress-bar">
-            <div class="progress-fill" id="progressFill"></div>
-        </div>
 
-        <div class="slide-wrapper" id="slideWrapper">
-            <!-- Slides will be inserted here -->
-        </div>
-
-        <div class="controls">
-            <button onclick="prevSlide()" id="prevBtn">← Sebelumnya</button>
-            <div class="slide-counter">
-                <span id="currentSlide">1</span> / <span id="totalSlides">10</span>
-            </div>
-            <button onclick="nextSlide()" id="nextBtn">Selanjutnya →</button>
-        </div>
+    <!-- Rotate Hint -->
+    <div id="rotateHint">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+        </svg>
+        <h2>Putar HP Anda</h2>
+        <p>Silakan putar HP Anda ke mode landscape<br>untuk pengalaman presentasi terbaik di TV.</p>
     </div>
 
-    <div class="keyboard-hint">
-        <strong>Keyboard:</strong> ← → arrow keys | Space | Esc fullscreen
+    <!-- Progress bar -->
+    <div id="progressBar"><div id="progressFill"></div></div>
+
+    <!-- Slides -->
+    <div id="slideWrapper"></div>
+
+    <!-- Invisible Touch Zones for easy tap navigation -->
+    <div id="touchPrev" class="touch-zone" onclick="prevSlide()"></div>
+    <div id="touchNext" class="touch-zone" onclick="nextSlide()"></div>
+
+    <!-- Fullscreen Button -->
+    <button id="fullscreenBtn" onclick="toggleFullscreen()" title="Toggle Fullscreen">
+        <svg viewBox="0 0 24 24">
+            <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+        </svg>
+    </button>
+
+    <!-- HUD Controls (Visible) -->
+    <div id="hud">
+        <button class="nav-btn" onclick="prevSlide()">← Prev</button>
+        <span id="counter">1 / 10</span>
+        <button class="nav-btn" onclick="nextSlide()">Next →</button>
     </div>
 
     <script>
-        let currentSlide = 1;
-        const totalSlides = 10;
-        const slideImages = [];
+        let current = 1;
+        const total = 10;
+        let hudTimer;
+        let touchStartX = 0;
+        let touchStartY = 0;
 
-        // Initialize slides
         function initSlides() {
             const wrapper = document.getElementById('slideWrapper');
-            
-            for (let i = 1; i <= totalSlides; i++) {
-                const slideNum = String(i).padStart(2, '0');
+
+            for (let i = 1; i <= total; i++) {
+                const num = String(i).padStart(2, '0');
                 const slide = document.createElement('div');
-                slide.className = 'slide';
-                if (i === 1) slide.classList.add('active');
+                slide.className = 'slide' + (i === 1 ? ' active' : '');
                 
                 const img = document.createElement('img');
-                img.src = `slide-${slideNum}.jpg`;
+                img.src = `slide-${num}.jpg`;
                 img.alt = `Slide ${i}`;
+                img.draggable = false;
                 
                 slide.appendChild(img);
                 wrapper.appendChild(slide);
             }
+            update();
+        }
+
+        function goTo(n) {
+            if (n < 1 || n > total) return;
+            current = n;
             
-            updateCounter();
-            updateProgress();
-        }
-
-        function showSlide(n) {
-            const slides = document.querySelectorAll('.slide');
+            document.querySelectorAll('.slide').forEach((s, i) => {
+                s.classList.toggle('active', i + 1 === current);
+            });
             
-            if (n > totalSlides) {
-                currentSlide = totalSlides;
-            }
-            if (n < 1) {
-                currentSlide = 1;
-            }
+            update();
+            triggerHud();
+        }
+
+        function nextSlide() { goTo(current + 1); }
+        function prevSlide() { goTo(current - 1); }
+
+        function update() {
+            document.getElementById('counter').textContent = current + ' / ' + total;
+            document.getElementById('progressFill').style.width = (current / total * 100) + '%';
+        }
+
+        // --- HUD Behavior ---
+        function triggerHud() {
+            const hud = document.getElementById('hud');
+            const fsBtn = document.getElementById('fullscreenBtn');
             
-            slides.forEach(slide => slide.classList.remove('active'));
-            slides[currentSlide - 1].classList.add('active');
+            hud.classList.remove('hidden');
+            fsBtn.classList.remove('hidden');
             
-            updateCounter();
-            updateProgress();
+            clearTimeout(hudTimer);
+            // Hide HUD after 3 seconds of inactivity
+            hudTimer = setTimeout(() => {
+                hud.classList.add('hidden');
+                fsBtn.classList.add('hidden');
+            }, 3000);
         }
 
-        function nextSlide() {
-            currentSlide++;
-            showSlide(currentSlide);
-        }
+        // Show HUD on tap anywhere (except the touch zones which already handle navigation)
+        document.addEventListener('click', triggerHud);
+        document.addEventListener('touchstart', triggerHud, {passive: true});
 
-        function prevSlide() {
-            currentSlide--;
-            showSlide(currentSlide);
-        }
+        // --- Swipe Support ---
+        document.addEventListener('touchstart', e => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        }, { passive: true });
 
-        function updateCounter() {
-            document.getElementById('currentSlide').textContent = currentSlide;
-        }
-
-        function updateProgress() {
-            const progress = (currentSlide / totalSlides) * 100;
-            document.getElementById('progressFill').style.width = progress + '%';
-        }
-
-        // Keyboard navigation
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowRight' || e.key === ' ') {
-                e.preventDefault();
-                nextSlide();
+        document.addEventListener('touchend', e => {
+            const dx = e.changedTouches[0].clientX - touchStartX;
+            const dy = e.changedTouches[0].clientY - touchStartY;
+            
+            // Horizontal swipe must be greater than vertical and at least 50px
+            if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+                if (dx < 0) nextSlide(); // Swipe left -> next
+                else prevSlide();        // Swipe right -> prev
             }
-            if (e.key === 'ArrowLeft') {
-                e.preventDefault();
-                prevSlide();
+        }, { passive: true });
+
+        // --- Keyboard Support ---
+        document.addEventListener('keydown', e => {
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { 
+                e.preventDefault(); 
+                nextSlide(); 
             }
-            if (e.key === 'Escape') {
-                if (document.fullscreenElement) {
+            if (e.key === 'ArrowLeft' || e.key === 'PageUp') { 
+                e.preventDefault(); 
+                prevSlide(); 
+            }
+            if (e.key === 'f' || e.key === 'F') { 
+                toggleFullscreen(); 
+            }
+            triggerHud();
+        });
+
+        // --- Fullscreen ---
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {
+                    console.log("Fullscreen request failed");
+                });
+            } else {
+                if (document.exitFullscreen) {
                     document.exitFullscreen();
-                } else {
-                    document.documentElement.requestFullscreen().catch(err => {});
                 }
             }
-        });
+        }
 
-        // Double click for fullscreen
-        document.querySelector('.slide-wrapper').addEventListener('dblclick', () => {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => {});
-            } else {
-                document.exitFullscreen();
-            }
+        // Initial setup
+        window.addEventListener('load', () => {
+            initSlides();
+            triggerHud(); // Show HUD initially
         });
-
-        // Initialize on load
-        window.addEventListener('load', initSlides);
     </script>
 </body>
 </html>
